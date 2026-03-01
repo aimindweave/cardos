@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CardOS — Product Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@500&display=swap');
+
+  :root {
+    --bg: #050a12;
+    --text: #e8edf5;
+    --sub: #6b7d94;
+    --accent: #ff3a4a;
+    --accent2: #ff6b7a;
+    --green: #76b900;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  /* Particle canvas */
+  #particles { position: fixed; inset: 0; z-index: 0; opacity: 0.3; }
+
+  /* Slides */
+  .slide {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.7s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+  .slide.active .reveal { animation: revealUp 0.6s ease forwards; }
+  .slide.active .reveal-d1 { animation-delay: 0.12s; }
+  .slide.active .reveal-d2 { animation-delay: 0.24s; }
+  .slide.active .reveal-d3 { animation-delay: 0.36s; }
+  .slide.active .reveal-d4 { animation-delay: 0.48s; }
+  .reveal { opacity: 0; transform: translateY(20px); }
+  @keyframes revealUp { to { opacity: 1; transform: translateY(0); } }
+  @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .gradient-text {
+    background: linear-gradient(135deg, var(--accent), var(--accent2), #ff9a6c);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+  }
+
+  /* Layout: left text + right phone */
+  .split {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+    max-width: 960px;
+    width: 100%;
+  }
+  .split-info { flex: 1; min-width: 0; }
+  .split-phone { flex-shrink: 0; }
+
+  /* Text styles */
+  .slide-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 20px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .badge-green { background: rgba(118,185,0,0.08); border: 1px solid rgba(118,185,0,0.18); color: var(--green); }
+  .badge-red { background: rgba(255,58,74,0.08); border: 1px solid rgba(255,58,74,0.18); color: var(--accent); }
+  .badge-blue { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.18); color: #60a5fa; }
+  .pulse-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+
+  .slide-title {
+    font-size: clamp(26px, 4vw, 42px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+  .slide-desc {
+    font-size: clamp(13px, 1.8vw, 16px);
+    color: var(--sub);
+    line-height: 1.65;
+    font-weight: 300;
+    max-width: 380px;
+  }
+
+  /* Feature bullets */
+  .bullets { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .bullet {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px; font-weight: 400; color: var(--sub);
+  }
+  .bullet-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .bullet strong { color: var(--text); font-weight: 600; }
+
+  /* Phone mockup */
+  .phone {
+    width: 280px;
+    height: 560px;
+    border-radius: 36px;
+    border: 2px solid rgba(255,255,255,0.08);
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+    position: relative;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 24px;
+    background: #000;
+    border-radius: 0 0 14px 14px;
+    z-index: 10;
+  }
+  .phone iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 34px;
+  }
+  .phone-label {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.15);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Intro slide (no phone) */
+  .intro-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .intro-center .slide-title { text-align: center; margin-bottom: 16px; }
+  .intro-center .slide-desc { text-align: center; max-width: 460px; }
+
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .logo-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: white;
+    box-shadow: 0 4px 24px rgba(255,58,74,0.15);
+  }
+  .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+
+  .url-box {
+    margin-top: 20px; padding: 10px 24px; border-radius: 12px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--green);
+  }
+
+  /* CTA slide */
+  .cta-box {
+    padding: 40px 44px; border-radius: 24px;
+    background: radial-gradient(ellipse at center, rgba(255,58,74,0.08), transparent 70%);
+    border: 1px solid rgba(255,58,74,0.12);
+    text-align: center; margin-top: 8px;
+  }
+  .cta-btn {
+    display: inline-block; margin-top: 18px;
+    padding: 14px 40px; border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent), #e8364a);
+    color: white; font-weight: 700; font-size: 15px;
+    text-decoration: none;
+    box-shadow: 0 8px 36px rgba(255,58,74,0.25);
+  }
+  .links-row { margin-top: 24px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .link-pill {
+    padding: 7px 14px; border-radius: 9px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    font-size: 11px; color: var(--sub); text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Nav */
+  .nav-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    display: flex; justify-content: center; align-items: center; gap: 6px;
+    padding: 16px;
+    background: linear-gradient(transparent, rgba(5,10,18,0.95));
+  }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    cursor: pointer; transition: all 0.4s; border: none; padding: 0;
+  }
+  .nav-dot.active { background: var(--accent); width: 20px; border-radius: 3px; }
+  .counter {
+    position: fixed; top: 16px; right: 20px; z-index: 100;
+    font-size: 10px; color: rgba(255,255,255,0.12);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  @media (max-width: 700px) {
+    .split { flex-direction: column; gap: 24px; }
+    .split-info { text-align: center; }
+    .slide-desc { max-width: none; }
+    .bullets { align-items: center; }
+    .phone { width: 240px; height: 480px; }
+    .split-phone { order: -1; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div class="counter" id="counter">1 / 6</div>
+
+<!-- Slide 1: Intro -->
+<div class="slide active" id="s0">
+  <div class="intro-center">
+    <div class="reveal logo">
+      <div class="logo-icon">C</div>
+      <div class="logo-text">CardOS</div>
+    </div>
+    <div class="reveal reveal-d1 slide-badge badge-green"><div class="pulse-dot"></div> GTC 2026</div>
+    <h1 class="reveal reveal-d2 slide-title" style="font-size:clamp(34px,6vw,60px);">Your digital card<br><span class="gradient-text">for tech events</span></h1>
+    <p class="reveal reveal-d3 slide-desc">Create a business card in 60 seconds. Share via QR code. Collect contacts automatically.</p>
+    <div class="reveal reveal-d4 url-box">cardos.vercel.app</div>
+  </div>
+</div>
+
+<!-- Slide 2: Card page -->
+<div class="slide" id="s1">
+  <div class="split">
+    <div class="split-info">
+      <div class="reveal slide-badge badge-green"><div class="pulse-dot"></div> Live demo</div>
+      <h2 class="reveal reveal-d1 slide-title">Your card,<br><span class="gradient-text">all in one place</span></h2>
+      <p class="reveal reveal-d2 slide-desc">Everything a new connection needs to know — name, title, links, companies, projects, AI stack, and your philosophy.</p>
+      <div class="bullets reveal reveal-d3">
+        <div class="bullet"><div class="bullet-icon">🔗</div><strong>Social links</strong> — X, email, GitHub, etc.</div>
+        <div class="bullet"><div class="bullet-icon">🏢</div><strong>Companies</strong> — with role & description</div>
+        <div class="bullet"><div class="bullet-icon">🔨</div><strong>Projects</strong> — what you're building</div>
+        <div class="bullet"><div class="bullet-icon">🤖</div><strong>AI Stack</strong> — tools you use daily</div>
+      </div>
+    </div>
+    <div class="split-phone reveal reveal-d2">
+      <div class="phone">
+        <iframe src="https://cardos.vercel.app/s/shayla" loading="lazy"></iframe>
+      </div>
+      <div class="phone-label">cardos.vercel.app/s/shayla</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 3: Exchange -->
+<div class="slide" id="s2">
+  <div class="split">
+    <div class="split-info">
+      <div class="reveal slide-badge badge-red">Core feature</div>
+      <h2 class="reveal reveal-d1 slide-title">Two-way<br><span class="gradient-text">contact exchange</span></h2>
+      <p class="reveal reveal-d2 slide-desc">They tap "Exchange Contact" → fill their info → you get their details AND they get your vCard saved to their phone. Both win.</p>
+      <div class="bullets reveal reveal-d3">
+        <div class="bullet"><div class="bullet-icon">📇</div><strong>Auto vCard</strong> — saves to their contacts</div>
+        <div class="bullet"><div class="bullet-icon">📋</div><strong>Import .vcf</strong> — or type manually</div>
+        <div class="bullet"><div class="bullet-icon">📊</div><strong>Track all</strong> — see who exchanged, export CSV</div>
+      </div>
+    </div>
+    <div class="split-phone reveal reveal-d2">
+      <div class="phone">
+        <iframe src="https://cardos.vercel.app/s/shayla" loading="lazy"></iframe>
+      </div>
+      <div class="phone-label">Scroll down → tap Exchange</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 4: Create flow -->
+<div class="slide" id="s3">
+  <div class="split">
+    <div class="split-info">
+      <div class="reveal slide-badge badge-blue">60 seconds</div>
+      <h2 class="reveal reveal-d1 slide-title">Create your card<br><span class="gradient-text">in 60 seconds</span></h2>
+      <p class="reveal reveal-d2 slide-desc">6-step form. No signup, no email, no password. Just fill in your info, set a 4-digit PIN, and publish.</p>
+      <div class="bullets reveal reveal-d3">
+        <div class="bullet"><div class="bullet-icon">⚡</div><strong>No account</strong> — zero registration friction</div>
+        <div class="bullet"><div class="bullet-icon">🔐</div><strong>4-digit PIN</strong> — edit your card anytime</div>
+        <div class="bullet"><div class="bullet-icon">📸</div><strong>Avatar upload</strong> — or paste a URL</div>
+        <div class="bullet"><div class="bullet-icon">🚀</div><strong>Instant publish</strong> — live in seconds</div>
+      </div>
+    </div>
+    <div class="split-phone reveal reveal-d2">
+      <div class="phone">
+        <iframe src="https://cardos.vercel.app/create" loading="lazy"></iframe>
+      </div>
+      <div class="phone-label">cardos.vercel.app/create</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 5: Edit + QR -->
+<div class="slide" id="s4">
+  <div class="split">
+    <div class="split-info">
+      <div class="reveal slide-badge badge-green"><div class="pulse-dot"></div> Owner tools</div>
+      <h2 class="reveal reveal-d1 slide-title">Edit & manage<br><span class="gradient-text">your card</span></h2>
+      <p class="reveal reveal-d2 slide-desc">Edit all fields. View your contacts and export CSV. Generate a QR code image with your avatar — save to photos and show at events.</p>
+      <div class="bullets reveal reveal-d3">
+        <div class="bullet"><div class="bullet-icon">✏️</div><strong>Edit everything</strong> — all fields, live update</div>
+        <div class="bullet"><div class="bullet-icon">📱</div><strong>QR with avatar</strong> — save to photos</div>
+        <div class="bullet"><div class="bullet-icon">📨</div><strong>Contact list</strong> — see all exchanges</div>
+        <div class="bullet"><div class="bullet-icon">📤</div><strong>Export CSV</strong> — for follow-up</div>
+      </div>
+    </div>
+    <div class="split-phone reveal reveal-d2">
+      <div class="phone">
+        <iframe src="https://cardos.vercel.app/s/shayla" loading="lazy"></iframe>
+      </div>
+      <div class="phone-label">Bottom → "Edit card" → enter PIN</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 6: CTA -->
+<div class="slide" id="s5">
+  <div class="intro-center">
+    <div class="reveal logo" style="margin-bottom: 20px;">
+      <div class="logo-icon">C</div>
+      <div class="logo-text">CardOS</div>
+    </div>
+    <div class="reveal reveal-d1 cta-box">
+      <h2 class="slide-title" style="font-size: clamp(22px,4vw,34px); margin-bottom: 6px;">Get your card ready<br>before GTC</h2>
+      <p class="slide-desc" style="text-align:center; max-width: none; font-size: 14px;">Free forever. No signup. 60 seconds.</p>
+      <a href="https://cardos.vercel.app/create" class="cta-btn">Create Your Card →</a>
+    </div>
+    <div class="links-row reveal reveal-d2">
+      <a href="https://cardos.vercel.app/create" class="link-pill">→ cardos.vercel.app/create</a>
+      <a href="https://cardos.vercel.app/s/shayla" class="link-pill">→ Demo: Shayla's card</a>
+    </div>
+  </div>
+</div>
+
+<div class="nav-bar" id="nav"></div>
+
+<script>
+// Particles
+const cv = document.getElementById('particles'), cx = cv.getContext('2d');
+let W, H;
+const P = [];
+function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+resize(); addEventListener('resize', resize);
+for (let i = 0; i < 50; i++) P.push({ x: Math.random()*W, y: Math.random()*H, vx: (Math.random()-.5)*.25, vy: (Math.random()-.5)*.25, r: Math.random()*1.2+.4 });
+(function draw() {
+  cx.clearRect(0,0,W,H);
+  P.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x<0) p.x=W; if (p.x>W) p.x=0; if (p.y<0) p.y=H; if (p.y>H) p.y=0;
+    cx.beginPath(); cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    cx.fillStyle='rgba(118,185,0,0.25)'; cx.fill();
+  });
+  for (let i=0;i<P.length;i++) for (let j=i+1;j<P.length;j++) {
+    const d=Math.hypot(P[i].x-P[j].x,P[i].y-P[j].y);
+    if (d<100) { cx.beginPath(); cx.moveTo(P[i].x,P[i].y); cx.lineTo(P[j].x,P[j].y);
+      cx.strokeStyle=`rgba(118,185,0,${.06*(1-d/100)})`; cx.stroke(); }
+  }
+  requestAnimationFrame(draw);
+})();
+
+// Nav
+const slides = document.querySelectorAll('.slide');
+const nav = document.getElementById('nav');
+const ctr = document.getElementById('counter');
+let cur = 0;
+slides.forEach((_,i) => { const d=document.createElement('button'); d.className='nav-dot'+(i===0?' active':''); d.onclick=()=>go(i); nav.appendChild(d); });
+
+function go(n) {
+  if (n===cur||n<0||n>=slides.length) return;
+  slides[cur].querySelectorAll('.reveal').forEach(el => { el.style.opacity='0'; el.style.transform='translateY(20px)'; });
+  slides[cur].classList.remove('active');
+  nav.children[cur].classList.remove('active');
+  cur=n;
+  slides[cur].querySelectorAll('.reveal').forEach(el => { el.style.opacity=''; el.style.transform=''; });
+  slides[cur].classList.add('active');
+  nav.children[cur].classList.add('active');
+  ctr.textContent=(cur+1)+' / '+slides.length;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(cur+1); }
+  if (e.key==='ArrowLeft') { e.preventDefault(); go(cur-1); }
+});
+let tx=0;
+document.addEventListener('touchstart', e => { tx=e.touches[0].clientX; }, {passive:true});
+document.addEventListener('touchend', e => { const dx=e.changedTouches[0].clientX-tx; if (Math.abs(dx)>40) go(cur+(dx<0?1:-1)); }, {passive:true});
+document.addEventListener('click', e => {
+  if (e.target.closest('.nav-bar,.phone,a,button')) return;
+  if (e.clientX > innerWidth*0.6) go(cur+1);
+  else if (e.clientX < innerWidth*0.4) go(cur-1);
+});
+</script>
+</body>
+</html>
