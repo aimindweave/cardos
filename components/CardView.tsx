@@ -75,13 +75,8 @@ function NeuralBg() {
   return <canvas ref={ref} className="absolute inset-0 w-full h-full pointer-events-none" />;
 }
 
-interface CardViewProps {
-  profile: Profile;
-  editToken?: string | null;
-}
-
-export default function CardView({ profile, editToken }: CardViewProps) {
-  const cardUrl = 'https://cardos.vercel.app/s/' + profile.slug;
+export default function CardView({ profile, editToken }: { profile: Profile; editToken?: string | null }) {
+  const cardUrl = 'https://cardos.ai/' + profile.slug;
   const mainColor = profile.companies?.[0]?.color || '#ff4757';
 
   const [view, setView] = useState<'card' | 'exchange'>('card');
@@ -115,7 +110,7 @@ export default function CardView({ profile, editToken }: CardViewProps) {
       if (keyParam === editToken) {
         localStorage.setItem('cardos_edit_' + profile.slug, editToken);
         // Clean up URL
-        window.history.replaceState({}, '', '/s/' + profile.slug);
+        window.history.replaceState({}, '', '/' + profile.slug);
       }
     }
 
@@ -162,6 +157,7 @@ export default function CardView({ profile, editToken }: CardViewProps) {
   const gl = 'bg-white/[0.03] backdrop-blur-2xl border border-white/[0.06] rounded-2xl';
   const ok = form.name && form.email;
   const firstName = profile.name.split(' ')[0];
+  const lookingFor = (profile as any).looking_for || [];
 
   return (
     <div className="min-h-screen bg-[#060b14] text-[#d0d8e4] relative overflow-hidden">
@@ -177,8 +173,8 @@ export default function CardView({ profile, editToken }: CardViewProps) {
             </span>
           ) : <span />}
           <div className="flex gap-1">
-            <button onClick={share} aria-label="Share" className="p-2 rounded-lg bg-white/5 border border-white/[0.08] text-[#667]">{UI.sh}</button>
-            <button onClick={() => setQrOpen(!qrOpen)} aria-label="QR" className="p-2 rounded-lg border" style={{ background: qrOpen ? 'rgba(118,185,0,0.15)' : 'rgba(255,255,255,0.05)', borderColor: qrOpen ? 'rgba(118,185,0,0.3)' : 'rgba(255,255,255,0.08)', color: qrOpen ? '#76b900' : '#667' }}>{UI.qr}</button>
+            <button type="button" onClick={share} aria-label="Share" className="p-2 rounded-lg bg-white/5 border border-white/[0.08] text-[#667]">{UI.sh}</button>
+            <button type="button" onClick={() => setQrOpen(!qrOpen)} aria-label="QR" className="p-2 rounded-lg border" style={{ background: qrOpen ? 'rgba(118,185,0,0.15)' : 'rgba(255,255,255,0.05)', borderColor: qrOpen ? 'rgba(118,185,0,0.3)' : 'rgba(255,255,255,0.08)', color: qrOpen ? '#76b900' : '#667' }}>{UI.qr}</button>
           </div>
         </div>
 
@@ -190,7 +186,7 @@ export default function CardView({ profile, editToken }: CardViewProps) {
               <QRCode data={cardUrl} size={160} />
             </div>
             <p className="text-[11px] text-[#778] mb-2.5">Scan to open this card</p>
-            <button onClick={(e) => { e.stopPropagation(); copy(); }} className="w-full py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-medium flex items-center justify-center gap-1.5" style={{ color: copied ? '#76b900' : '#889' }}>
+            <button type="button" onClick={(e) => { e.stopPropagation(); copy(); }} className="w-full py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-medium flex items-center justify-center gap-1.5" style={{ color: copied ? '#76b900' : '#889' }}>
               {copied ? <>{UI.ok} Copied!</> : <>{UI.cp} Copy link</>}
             </button>
           </div>
@@ -212,7 +208,7 @@ export default function CardView({ profile, editToken }: CardViewProps) {
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-white/[0.06]">
-                  <button onClick={() => downloadVCard(profile, cardUrl)} className="px-5 py-2.5 rounded-lg text-xs font-semibold text-white" style={{ background: 'linear-gradient(135deg,' + mainColor + ',' + mainColor + 'cc)' }}>
+                  <button type="button" onClick={() => downloadVCard(profile, cardUrl)} className="px-5 py-2.5 rounded-lg text-xs font-semibold text-white" style={{ background: 'linear-gradient(135deg,' + mainColor + ',' + mainColor + 'cc)' }}>
                     {UI.dl}{' Save ' + firstName + "'s Contact Again"}
                   </button>
                 </div>
@@ -234,13 +230,13 @@ export default function CardView({ profile, editToken }: CardViewProps) {
                   </div>
                 </div>
 
-                <button onClick={() => { setSent(false); setForm({ name: '', email: '', phone: '', company: '', note: '', linkedin: '' }); }} className="mt-3 px-5 py-2 rounded-lg border border-white/10 text-xs text-[#889]">Exchange another</button>
+                <button type="button" onClick={() => { setSent(false); setForm({ name: '', email: '', phone: '', company: '', note: '', linkedin: '' }); }} className="mt-3 px-5 py-2 rounded-lg border border-white/10 text-xs text-[#889]">Exchange another</button>
               </div>
             ) : <>
               <h3 className="text-[15px] font-semibold text-[#e8edf3] mb-1">{"Exchange with " + firstName}</h3>
               <p className="text-xs text-[#778] mb-4">{"Share your info \u2014 you'll get " + firstName + "'s contact card in return"}</p>
               <div className="mb-4">
-                <button onClick={() => fileRef.current?.click()} className={gl + ' w-full p-4 flex items-center gap-3 cursor-pointer'}>
+                <button type="button" onClick={() => fileRef.current?.click()} className={gl + ' w-full p-4 flex items-center gap-3 cursor-pointer'}>
                   <span className="text-2xl">{parsing ? '\u23F3' : '\uD83D\uDCC7'}</span>
                   <div className="text-left">
                     <span className="text-xs font-semibold block">Import vCard</span>
@@ -264,7 +260,7 @@ export default function CardView({ profile, editToken }: CardViewProps) {
                 </div>
                 <input type="url" placeholder="LinkedIn (optional)" value={form.linkedin} onChange={e=>upd('linkedin',e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-[#d0d8e4] focus:border-[#76b900]/30 outline-none placeholder-[#445]" />
                 <input type="text" placeholder="What should we chat about?" value={form.note} onChange={e=>upd('note',e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-[#d0d8e4] focus:border-[#76b900]/30 outline-none placeholder-[#445]" />
-                <button onClick={submit} disabled={!ok || sending} className="py-3.5 rounded-xl text-sm font-semibold transition-all" style={{ background: ok ? 'linear-gradient(135deg,' + mainColor + ',' + mainColor + 'cc)' : 'rgba(255,255,255,0.04)', color: ok ? '#fff' : '#445', boxShadow: ok ? '0 3px 14px ' + mainColor + '33' : 'none', cursor: ok ? 'pointer' : 'default' }}>
+                <button type="button" onClick={submit} disabled={!ok || sending} className="py-3.5 rounded-xl text-sm font-semibold transition-all" style={{ background: ok ? 'linear-gradient(135deg,' + mainColor + ',' + mainColor + 'cc)' : 'rgba(255,255,255,0.04)', color: ok ? '#fff' : '#445', boxShadow: ok ? '0 3px 14px ' + mainColor + '33' : 'none', cursor: ok ? 'pointer' : 'default' }}>
                   {sending ? 'Exchanging...' : ok ? 'Exchange \u2192 Get ' + firstName + "'s Contact" : 'Fill in name & email to exchange'}
                 </button>
               </div>
@@ -299,12 +295,30 @@ export default function CardView({ profile, editToken }: CardViewProps) {
                   </a>
                 );
                 return (
-                  <button key={i} onClick={() => { navigator.clipboard.writeText(l.url); setCopiedLink(i); setTimeout(() => setCopiedLink(-1), 2000); }} className={gl + ' flex items-center gap-2.5 px-3.5 py-3 text-[#a0aab4] text-xs font-medium text-left border-0 cursor-pointer w-full'}>
+                  <button key={i} type="button" onClick={() => { navigator.clipboard.writeText(l.url); setCopiedLink(i); setTimeout(() => setCopiedLink(-1), 2000); }} className={gl + ' flex items-center gap-2.5 px-3.5 py-3 text-[#a0aab4] text-xs font-medium text-left border-0 cursor-pointer w-full'}>
                     <span className="shrink-0" style={{ color: copiedLink === i ? '#76b900' : (l.color || '#8a9aaa') }}>{ICONS[l.icon as keyof typeof ICONS] || ICONS.website}</span>
                     <span className="truncate">{copiedLink === i ? '\u2705 Copied: ' + l.url : l.label + ' \u00B7 Tap to copy'}</span>
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Looking For */}
+          {lookingFor.length > 0 && (
+            <div className={gl + ' p-5 mb-2.5'}>
+              <h2 className="text-[11px] font-bold tracking-widest uppercase text-[#ff4757] mb-3">{"\uD83C\uDFAF Looking For"}</h2>
+              <div className="flex flex-col gap-2">
+                {lookingFor.map((item: any, i: number) => (
+                  <div key={i} className="flex items-start gap-3 bg-[#ff4757]/[0.04] border border-[#ff4757]/[0.1] rounded-xl p-3">
+                    <span className="text-lg mt-0.5">{item.emoji || '\uD83C\uDFAF'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-[#f0f4f8]">{item.title}</p>
+                      {item.desc && <p className="text-[11px] text-[#8a9aaa] mt-0.5 leading-relaxed">{item.desc}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -382,13 +396,13 @@ export default function CardView({ profile, editToken }: CardViewProps) {
           )}
 
           {/* Single CTA: Exchange Contact */}
-          <button onClick={() => setView('exchange')} className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 mb-2 transition-all" style={{ background: 'linear-gradient(135deg,' + mainColor + ',' + mainColor + 'cc)', boxShadow: '0 3px 14px ' + mainColor + '33' }}>
+          <button type="button" onClick={() => setView('exchange')} className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 mb-2 transition-all" style={{ background: 'linear-gradient(135deg,' + mainColor + ',' + mainColor + 'cc)', boxShadow: '0 3px 14px ' + mainColor + '33' }}>
             {UI.ex} {'Exchange Contact with ' + firstName}
           </button>
         </>}
 
         {view === 'exchange' && (
-          <button onClick={() => setView('card')} className="w-full py-3 rounded-xl text-sm font-medium text-[#8a9aaa] bg-white/[0.04] border border-white/[0.08] flex items-center justify-center gap-1.5 mb-2">
+          <button type="button" onClick={() => setView('card')} className="w-full py-3 rounded-xl text-sm font-medium text-[#8a9aaa] bg-white/[0.04] border border-white/[0.08] flex items-center justify-center gap-1.5 mb-2">
             {UI.bk} Back to card
           </button>
         )}
@@ -399,7 +413,7 @@ export default function CardView({ profile, editToken }: CardViewProps) {
           {isOwner ? (
             <a href={'/edit/' + profile.slug} className="text-[10px] text-[#ff4757] font-semibold no-underline">Edit card</a>
           ) : (
-            <button onClick={() => setShowManage(true)} className="text-[10px] text-[#445] font-medium bg-transparent border-none cursor-pointer p-0">Is this yours?</button>
+            <button type="button" onClick={() => setShowManage(true)} className="text-[10px] text-[#445] font-medium bg-transparent border-none cursor-pointer p-0">Is this yours?</button>
           )}
         </div>
 
@@ -411,7 +425,7 @@ export default function CardView({ profile, editToken }: CardViewProps) {
               <p className="text-[10px] text-[#667] mb-3">Enter the 4-digit PIN you set when creating this card</p>
               <input type="tel" maxLength={4} placeholder="PIN" value={manageToken} onChange={e => setManageToken(e.target.value.replace(/\D/g, '').slice(0, 4))} className="w-full px-3.5 py-3 rounded-lg bg-white/[0.04] border border-white/[0.08] text-lg font-bold text-[#d0d8e4] placeholder-[#445] focus:border-[#ff4757]/30 outline-none text-center tracking-[0.5em] mb-2" />
               {manageErr && <p className="text-[10px] text-[#ff4757] mb-2">{manageErr}</p>}
-              <button onClick={async () => {
+              <button type="button" onClick={async () => {
                 const supabase = (await import('@/lib/supabase-browser')).createClient();
                 const { data: p } = await supabase.from('profiles').select('edit_token, pin').eq('slug', profile.slug).single();
                 if (p && p.pin === manageToken) {

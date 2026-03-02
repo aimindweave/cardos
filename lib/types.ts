@@ -12,19 +12,18 @@ export interface Profile {
   builds: BuildItem[];
   ai_stack: ToolItem[];
   philosophy: string[];
+  looking_for: LookingForItem[];
   event: EventItem | null;
   theme: string;
   created_at: string;
   updated_at: string;
 }
-
 export interface LinkItem {
   icon: string;
   label: string;
   url: string;
   color?: string;
 }
-
 export interface CompanyItem {
   name: string;
   role: string;
@@ -32,7 +31,6 @@ export interface CompanyItem {
   url: string;
   desc: string;
 }
-
 export interface BuildItem {
   name: string;
   emoji: string;
@@ -40,18 +38,20 @@ export interface BuildItem {
   url: string;
   urlLabel?: string;
 }
-
 export interface ToolItem {
   name: string;
   note: string;
 }
-
+export interface LookingForItem {
+  title: string;
+  desc: string;
+  emoji: string;
+}
 export interface EventItem {
   name: string;
   date: string;
   color: string;
 }
-
 export interface Exchange {
   id: string;
   profile_id: string;

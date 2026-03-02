@@ -30,6 +30,8 @@ const PLATFORMS = [
 
 const EMOJIS = ['\uD83D\uDCE1', '\uD83D\uDCC8', '\uD83D\uDDA5\uFE0F', '\uD83E\uDD16', '\uD83E\uDDE0', '\uD83C\uDFA8', '\uD83D\uDD2C', '\uD83C\uDFAE', '\uD83D\uDCF1', '\uD83C\uDF10', '\u26A1', '\uD83D\uDD27', '\uD83D\uDCA1', '\uD83D\uDE80'];
 
+const LOOKING_EMOJIS = ['\uD83C\uDFAF', '\uD83D\uDDA5\uFE0F', '\uD83E\uDD1D', '\uD83D\uDE80', '\uD83D\uDCB0', '\uD83D\uDD27', '\uD83D\uDCE1', '\uD83E\uDDE0', '\uD83C\uDFE2', '\uD83D\uDC65', '\uD83D\uDCE6', '\uD83C\uDF10'];
+
 const inp = 'w-full px-3.5 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-[#d0d8e4] placeholder-[#445] focus:border-[#ff4757]/30 outline-none';
 
 function generateToken() {
@@ -54,11 +56,12 @@ export default function CreatePage() {
     builds: [{ name: '', emoji: '\uD83D\uDD27', desc: '', url: '', urlLabel: '' }],
     ai_stack: [{ name: '', note: '' }],
     philosophy: [''],
+    looking_for: [{ title: '', desc: '', emoji: '\uD83C\uDFAF' }],
     event: { name: 'GTC 2026', date: 'March 2026', color: '#76b900' },
     pin: '',
   });
 
-  const steps = ['Basic', 'Links', 'Companies', 'Projects', 'AI Stack', 'Publish'];
+  const steps = ['Basic', 'Links', 'Companies', 'Projects', 'AI Stack', 'Looking For', 'Publish'];
 
   const updArr = (key: string, idx: number, field: string, val: string) => {
     setData(prev => {
@@ -100,7 +103,6 @@ export default function CreatePage() {
     const { data: existing } = await supabase.from('profiles').select('id').eq('slug', slug).single();
     if (existing) { setError('This URL is already taken. Choose a different one.'); setSaving(false); return; }
 
-    // Upload avatar if selected
     let finalAvatarUrl = data.avatar_url;
     if (avatarFile) {
       const ext = avatarFile.name.split('.').pop() || 'jpg';
@@ -112,7 +114,6 @@ export default function CreatePage() {
       }
     }
 
-    // Auto-generate labels
     const processedLinks = data.links.filter(l => l.url).map(l => {
       if (!l.label && l.icon === 'email') return { ...l, label: l.url, url: 'mailto:' + l.url, color: '#ea4335' };
       if (!l.label && l.icon === 'x') { const h = l.url.replace(/https?:\/\/(x|twitter)\.com\//i, ''); return { ...l, label: '@' + h, color: '#fff' }; }
@@ -138,6 +139,7 @@ export default function CreatePage() {
       builds: data.builds.filter(b => b.name),
       ai_stack: data.ai_stack.filter(t => t.name),
       philosophy: data.philosophy.filter(Boolean),
+      looking_for: data.looking_for.filter(item => item.title),
       event: data.event.name ? data.event : null,
       edit_token: editToken,
       pin: data.pin,
@@ -145,15 +147,13 @@ export default function CreatePage() {
 
     if (insertErr) { setError('Save error: ' + insertErr.message); setSaving(false); return; }
 
-    // Save edit token to localStorage
     localStorage.setItem('cardos_edit_' + slug, editToken);
-
     setDone({ slug, token: editToken });
     setSaving(false);
   };
 
   if (done) {
-    const cardUrl = 'https://cardos.vercel.app/s/' + done.slug;
+    const cardUrl = 'https://cardos.ai/' + done.slug;
     return (
       <div className="min-h-screen bg-[#060b14] text-[#d0d8e4] flex items-center justify-center px-6">
         <div className="max-w-md text-center">
@@ -172,7 +172,7 @@ export default function CreatePage() {
             <button onClick={() => navigator.clipboard.writeText(cardUrl)} className="px-4 py-2 rounded-lg border border-white/10 text-xs text-[#889]">Copy link</button>
           </div>
 
-          <a href={'/s/' + done.slug} className="inline-block px-6 py-3 rounded-xl text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg,#ff4757,#e8364a)', boxShadow: '0 4px 20px rgba(255,71,87,0.2)' }}>
+          <a href={'/' + done.slug} className="inline-block px-6 py-3 rounded-xl text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg,#ff4757,#e8364a)', boxShadow: '0 4px 20px rgba(255,71,87,0.2)' }}>
             {'View Your Card \u2192'}
           </a>
           <p className="text-[10px] text-[#445] mt-4">{"Open your card \u2192 tap 'Edit card' at the bottom \u2192 enter your PIN to edit anytime"}</p>
@@ -239,7 +239,7 @@ export default function CreatePage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold text-[#f0f4f8]">Social & Contact Links</h3>
-              <button onClick={() => addItem('links', { icon: 'website', label: '', url: '' })} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
+              <button type="button" onClick={() => addItem('links', { icon: 'website', label: '', url: '' })} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
             </div>
             <p className="text-[11px] text-[#556]">Visitors will see these as tappable buttons on your card.</p>
             {data.links.map((l, i) => (
@@ -270,7 +270,7 @@ export default function CreatePage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold text-[#f0f4f8]">Companies & Roles</h3>
-              <button onClick={() => addItem('companies', { name: '', role: '', color: '#76b900', url: '', desc: '' })} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
+              <button type="button" onClick={() => addItem('companies', { name: '', role: '', color: '#76b900', url: '', desc: '' })} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
             </div>
             {data.companies.map((c, i) => (
               <div key={i} className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 space-y-2">
@@ -299,7 +299,7 @@ export default function CreatePage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold text-[#f0f4f8]">Building in Public</h3>
-              <button onClick={() => addItem('builds', { name: '', emoji: '\uD83D\uDD27', desc: '', url: '', urlLabel: '' })} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
+              <button type="button" onClick={() => addItem('builds', { name: '', emoji: '\uD83D\uDD27', desc: '', url: '', urlLabel: '' })} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
             </div>
             <p className="text-[11px] text-[#556]">{"Side projects, open-source, bots, tools \u2014 anything you're building."}</p>
             {data.builds.map((b, i) => (
@@ -330,27 +330,27 @@ export default function CreatePage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-bold text-[#f0f4f8]">AI Stack</h3>
-                <button onClick={() => addItem('ai_stack', { name: '', note: '' })} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
+                <button type="button" onClick={() => addItem('ai_stack', { name: '', note: '' })} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
               </div>
               <p className="text-[11px] text-[#556]">What AI tools do you use? Great conversation starter.</p>
               {data.ai_stack.map((t, i) => (
                 <div key={i} className="grid grid-cols-[1fr_2fr_32px] gap-2 items-center">
                   <input className={inp} placeholder="Tool" value={t.name} onChange={e => updArr('ai_stack', i, 'name', e.target.value)} />
                   <input className={inp} placeholder="Why you use it" value={t.note} onChange={e => updArr('ai_stack', i, 'note', e.target.value)} />
-                  <button onClick={() => removeItem('ai_stack', i)} className="text-[#ff4757]/40 text-lg">{"\u00D7"}</button>
+                  <button type="button" onClick={() => removeItem('ai_stack', i)} className="text-[#ff4757]/40 text-lg">{"\u00D7"}</button>
                 </div>
               ))}
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-bold text-[#f0f4f8]">AI Philosophy</h3>
-                <button onClick={() => setData(p => ({ ...p, philosophy: [...p.philosophy, ''] }))} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
+                <button type="button" onClick={() => setData(p => ({ ...p, philosophy: [...p.philosophy, ''] }))} className="px-3 py-1 rounded-lg bg-[#76b900]/10 border border-[#76b900]/20 text-[11px] font-semibold text-[#76b900]">+ Add</button>
               </div>
               <p className="text-[11px] text-[#556]">Your hot takes on AI. Makes you memorable.</p>
               {data.philosophy.map((q, i) => (
                 <div key={i} className="grid grid-cols-[1fr_32px] gap-2 items-center">
                   <input className={inp} placeholder="Your AI belief..." value={q} onChange={e => { const next = [...data.philosophy]; next[i] = e.target.value; setData(p => ({ ...p, philosophy: next })); }} />
-                  <button onClick={() => setData(p => ({ ...p, philosophy: p.philosophy.filter((_, j) => j !== i) }))} className="text-[#ff4757]/40 text-lg">{"\u00D7"}</button>
+                  <button type="button" onClick={() => setData(p => ({ ...p, philosophy: p.philosophy.filter((_, j) => j !== i) }))} className="text-[#ff4757]/40 text-lg">{"\u00D7"}</button>
                 </div>
               ))}
             </div>
@@ -358,12 +358,36 @@ export default function CreatePage() {
         )}
 
         {step === 5 && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-[#f0f4f8]">Looking For at This Event</h3>
+              <button type="button" onClick={() => addItem('looking_for', { title: '', desc: '', emoji: '\uD83C\uDFAF' })} className="px-3 py-1 rounded-lg bg-[#ff4757]/10 border border-[#ff4757]/20 text-[11px] font-semibold text-[#ff4757]">+ Add</button>
+            </div>
+            <p className="text-[11px] text-[#556]">Tell people what you{"'"}re looking for — partnerships, products, talent. Makes matching instant.</p>
+            {data.looking_for.map((item, i) => (
+              <div key={i} className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-1 flex-wrap">
+                    {LOOKING_EMOJIS.map(e => (
+                      <button type="button" key={e} onClick={() => updArr('looking_for', i, 'emoji', e)} className="p-0.5 rounded text-sm" style={{ background: item.emoji === e ? 'rgba(255,71,87,0.15)' : 'none', border: item.emoji === e ? '1px solid rgba(255,71,87,0.3)' : '1px solid transparent' }}>{e}</button>
+                    ))}
+                  </div>
+                  {data.looking_for.length > 1 && <button type="button" onClick={() => removeItem('looking_for', i)} className="text-[11px] text-[#ff4757]/60 ml-2">Remove</button>}
+                </div>
+                <input className={inp} placeholder="What are you looking for?" value={item.title} onChange={e => updArr('looking_for', i, 'title', e.target.value)} />
+                <input className={inp} placeholder="Brief description (optional)" value={item.desc} onChange={e => updArr('looking_for', i, 'desc', e.target.value)} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {step === 6 && (
           <div className="space-y-6">
             <h3 className="text-lg font-bold text-[#f0f4f8]">Publish Your Card</h3>
             <div>
               <label className="text-[11px] font-semibold text-[#8a9aaa] mb-1.5 block">Your card URL</label>
               <div className="flex">
-                <span className="px-3 py-2.5 rounded-l-lg bg-white/[0.02] border border-r-0 border-white/[0.08] text-sm text-[#556]">cardos.vercel.app/s/</span>
+                <span className="px-3 py-2.5 rounded-l-lg bg-white/[0.02] border border-r-0 border-white/[0.08] text-sm text-[#556]">cardos.ai/</span>
                 <input className={inp + ' !rounded-l-none'} placeholder={data.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'yourname'} value={data.slug} onChange={e => setData(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))} />
               </div>
             </div>
@@ -375,7 +399,7 @@ export default function CreatePage() {
                 <input type="tel" maxLength={4} className={inp + ' !tracking-[0.5em] !text-center !text-lg !font-bold'} placeholder="\u2022\u2022\u2022\u2022" value={data.pin} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 4); setData(p => ({ ...p, pin: v })); }} />
                 <p className="text-[10px] text-[#556] mt-1">{"Remember this PIN \u2014 you'll need it to edit your card"}</p>
               </div>
-              <button onClick={publish} disabled={saving || !data.name || !data.title} className="w-full py-3.5 rounded-xl text-sm font-bold transition-all" style={{ background: data.name && data.title ? 'linear-gradient(135deg,#ff4757,#e8364a)' : 'rgba(255,255,255,0.04)', color: data.name && data.title ? '#fff' : '#445', boxShadow: data.name && data.title ? '0 4px 20px rgba(255,71,87,0.2)' : 'none', cursor: data.name && data.title ? 'pointer' : 'default' }}>
+              <button type="button" onClick={publish} disabled={saving || !data.name || !data.title} className="w-full py-3.5 rounded-xl text-sm font-bold transition-all" style={{ background: data.name && data.title ? 'linear-gradient(135deg,#ff4757,#e8364a)' : 'rgba(255,255,255,0.04)', color: data.name && data.title ? '#fff' : '#445', boxShadow: data.name && data.title ? '0 4px 20px rgba(255,71,87,0.2)' : 'none', cursor: data.name && data.title ? 'pointer' : 'default' }}>
                 {saving ? 'Publishing...' : data.name && data.title ? 'Publish Card \u2192' : 'Fill in name & title first'}
               </button>
             </div>

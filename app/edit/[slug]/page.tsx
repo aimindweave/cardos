@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import type { Profile } from '@/lib/types';
-import html2canvas from 'html2canvas';
 import { QRCode } from '@/components/QRCode';
 import { ICONS } from '@/components/Icons';
 
@@ -22,6 +21,8 @@ const PLATFORMS = [
   { icon: 'onlyfans', label: 'OnlyFans' }, { icon: 'medium', label: 'Medium' },
   { icon: 'website', label: 'Website' },
 ];
+
+const LOOKING_EMOJIS = ['\uD83C\uDFAF', '\uD83D\uDDA5\uFE0F', '\uD83E\uDD1D', '\uD83D\uDE80', '\uD83D\uDCB0', '\uD83D\uDD27', '\uD83D\uDCE1', '\uD83E\uDDE0', '\uD83C\uDFE2', '\uD83D\uDC65', '\uD83D\uDCE6', '\uD83C\uDF10'];
 
 export default function EditPage({ params }: { params: { slug: string } }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -45,13 +46,12 @@ export default function EditPage({ params }: { params: { slug: string } }) {
       const { data: p } = await supabase.from('profiles').select('*').eq('slug', params.slug).single();
       if (!p) { setLoading(false); return; }
       setProfile(p);
-      setData(p);
+      // Ensure looking_for exists in data
+      setData({ ...p, looking_for: p.looking_for || [] });
 
-      // Check authorization
       const storedKey = localStorage.getItem('cardos_edit_' + params.slug);
       if (storedKey && storedKey === p.edit_token) {
         setAuthorized(true);
-        // Load exchanges
         const { data: ex } = await supabase.from('exchanges').select('*').eq('profile_id', p.id).order('created_at', { ascending: false });
         setExchanges(ex || []);
       }
@@ -107,7 +107,9 @@ export default function EditPage({ params }: { params: { slug: string } }) {
       name: data.name, title: data.title, tagline: data.tagline,
       avatar_url: finalAvatarUrl, location: data.location,
       links: data.links, companies: data.companies, builds: data.builds,
-      ai_stack: data.ai_stack, philosophy: data.philosophy, event: data.event,
+      ai_stack: data.ai_stack, philosophy: data.philosophy,
+      looking_for: (data.looking_for || []).filter((item: any) => item.title),
+      event: data.event,
       updated_at: new Date().toISOString(),
     }).eq('id', profile.id);
 
@@ -134,7 +136,7 @@ export default function EditPage({ params }: { params: { slug: string } }) {
         <div className="text-4xl mb-3">{"\uD83D\uDD12"}</div>
         <h2 className="text-lg font-bold text-[#f0f4f8] mb-2">Not authorized</h2>
         <p className="text-sm text-[#7a8a9a] mb-4">Open your personal QR code link to access editing.</p>
-        <a href={'/s/' + params.slug} className="text-xs text-[#76b900] font-medium">{'View card \u2192'}</a>
+        <a href={'/' + params.slug} className="text-xs text-[#76b900] font-medium">{'View card \u2192'}</a>
       </div>
     </div>
   );
@@ -149,20 +151,21 @@ export default function EditPage({ params }: { params: { slug: string } }) {
           <span className="text-sm font-bold text-[#f0f4f8]">CardOS</span>
           <span className="text-xs text-[#556]">/ Edit</span>
         </div>
-        <a href={'/s/' + params.slug} className="text-xs text-[#76b900] font-medium">{'View card \u2192'}</a>
+        <a href={'/' + params.slug} className="text-xs text-[#76b900] font-medium">{'View card \u2192'}</a>
       </div>
 
       <div className="max-w-2xl mx-auto px-6 py-8">
         <div className="flex gap-1 mb-6">
-          <button onClick={() => setTab('edit')} className="px-4 py-2 rounded-lg text-xs font-semibold" style={{ background: tab === 'edit' ? 'rgba(255,71,87,0.12)' : 'rgba(255,255,255,0.02)', color: tab === 'edit' ? '#ff4757' : '#556' }}>{"\u270F\uFE0F Edit Card"}</button>
-          <button onClick={() => setTab('contacts')} className="px-4 py-2 rounded-lg text-xs font-semibold" style={{ background: tab === 'contacts' ? 'rgba(255,71,87,0.12)' : 'rgba(255,255,255,0.02)', color: tab === 'contacts' ? '#ff4757' : '#556' }}>{"\uD83D\uDCE8 Contacts"} ({exchanges.length})</button>
-          <button onClick={() => setTab('qr')} className="px-4 py-2 rounded-lg text-xs font-semibold" style={{ background: tab === 'qr' ? 'rgba(255,71,87,0.12)' : 'rgba(255,255,255,0.02)', color: tab === 'qr' ? '#ff4757' : '#556' }}>{"\uD83D\uDCF1 My QR"}</button>
+          <button type="button" onClick={() => setTab('edit')} className="px-4 py-2 rounded-lg text-xs font-semibold" style={{ background: tab === 'edit' ? 'rgba(255,71,87,0.12)' : 'rgba(255,255,255,0.02)', color: tab === 'edit' ? '#ff4757' : '#556' }}>{"\u270F\uFE0F Edit Card"}</button>
+          <button type="button" onClick={() => setTab('contacts')} className="px-4 py-2 rounded-lg text-xs font-semibold" style={{ background: tab === 'contacts' ? 'rgba(255,71,87,0.12)' : 'rgba(255,255,255,0.02)', color: tab === 'contacts' ? '#ff4757' : '#556' }}>{"\uD83D\uDCE8 Contacts"} ({exchanges.length})</button>
+          <button type="button" onClick={() => setTab('qr')} className="px-4 py-2 rounded-lg text-xs font-semibold" style={{ background: tab === 'qr' ? 'rgba(255,71,87,0.12)' : 'rgba(255,255,255,0.02)', color: tab === 'qr' ? '#ff4757' : '#556' }}>{"\uD83D\uDCF1 My QR"}</button>
         </div>
 
         {tab === 'edit' && data && (
           <div className="space-y-5">
             <input id="edit-avatar-upload" ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
 
+            {/* Basic Info */}
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 space-y-3">
               <h3 className="text-sm font-bold text-[#f0f4f8]">Basic Info</h3>
               <div className="flex items-center gap-4">
@@ -184,10 +187,11 @@ export default function EditPage({ params }: { params: { slug: string } }) {
               <div><label className="text-[10px] text-[#667] mb-1 block">Location</label><input className={inp} value={data.location || ''} onChange={e => updEdit('location', e.target.value)} /></div>
             </div>
 
+            {/* Links */}
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 space-y-3">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold text-[#f0f4f8]">Links</h3>
-                <button onClick={() => updEdit('links', [...data.links, { icon: 'website', label: '', url: '', color: '#8a9aaa' }])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
+                <button type="button" onClick={() => updEdit('links', [...data.links, { icon: 'website', label: '', url: '', color: '#8a9aaa' }])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
               </div>
               {data.links.map((l: any, i: number) => (
                 <div key={i} className="flex gap-2 items-center">
@@ -200,15 +204,16 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                   </select>
                   <input className={inp + ' !py-1.5 !text-xs'} placeholder="Label" value={l.label} onChange={e => updEditArr('links', i, 'label', e.target.value)} />
                   <input className={inp + ' !py-1.5 !text-xs'} placeholder="URL" value={l.url} onChange={e => updEditArr('links', i, 'url', e.target.value)} />
-                  <button onClick={() => updEdit('links', data.links.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm shrink-0">{"\u00D7"}</button>
+                  <button type="button" onClick={() => updEdit('links', data.links.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm shrink-0">{"\u00D7"}</button>
                 </div>
               ))}
             </div>
 
+            {/* Companies */}
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 space-y-3">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold text-[#f0f4f8]">Companies</h3>
-                <button onClick={() => updEdit('companies', [...data.companies, { name: '', role: '', color: '#3498db', url: '', desc: '' }])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
+                <button type="button" onClick={() => updEdit('companies', [...data.companies, { name: '', role: '', color: '#3498db', url: '', desc: '' }])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
               </div>
               {data.companies.map((c: any, i: number) => (
                 <div key={i} className="space-y-2 p-3 bg-white/[0.02] rounded-lg">
@@ -220,7 +225,7 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                     <input className={inp + ' !py-1.5 !text-xs'} placeholder="Name" value={c.name} onChange={e => updEditArr('companies', i, 'name', e.target.value)} />
                     <input className={inp + ' !py-1.5 !text-xs'} placeholder="Role" value={c.role} onChange={e => updEditArr('companies', i, 'role', e.target.value)} />
                     <input type="color" value={c.color} onChange={e => updEditArr('companies', i, 'color', e.target.value)} className="w-7 h-7 rounded border-none cursor-pointer shrink-0" />
-                    <button onClick={() => updEdit('companies', data.companies.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm shrink-0">{"\u00D7"}</button>
+                    <button type="button" onClick={() => updEdit('companies', data.companies.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm shrink-0">{"\u00D7"}</button>
                   </div>
                   <input className={inp + ' !py-1.5 !text-xs'} placeholder="URL" value={c.url} onChange={e => updEditArr('companies', i, 'url', e.target.value)} />
                   <input className={inp + ' !py-1.5 !text-xs'} placeholder="Description" value={c.desc} onChange={e => updEditArr('companies', i, 'desc', e.target.value)} />
@@ -232,7 +237,7 @@ export default function EditPage({ params }: { params: { slug: string } }) {
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 space-y-3">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold text-[#f0f4f8]">Building in Public</h3>
-                <button onClick={() => updEdit('builds', [...(data.builds || []), { name: '', emoji: '\uD83D\uDD27', desc: '', url: '', urlLabel: '' }])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
+                <button type="button" onClick={() => updEdit('builds', [...(data.builds || []), { name: '', emoji: '\uD83D\uDD27', desc: '', url: '', urlLabel: '' }])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
               </div>
               {(data.builds || []).map((b: any, i: number) => (
                 <div key={i} className="space-y-2 p-3 bg-white/[0.02] rounded-lg">
@@ -241,9 +246,13 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                       <button type="button" onClick={() => moveItem('builds', i, -1)} className="text-[10px] text-[#556] hover:text-[#aaa] leading-none" style={{ opacity: i === 0 ? 0.2 : 1 }}>{"\u25B2"}</button>
                       <button type="button" onClick={() => moveItem('builds', i, 1)} className="text-[10px] text-[#556] hover:text-[#aaa] leading-none" style={{ opacity: i === (data.builds || []).length - 1 ? 0.2 : 1 }}>{"\u25BC"}</button>
                     </div>
-                    <input className={inp + ' !py-1.5 !text-xs !w-16'} placeholder="Emoji" value={b.emoji} onChange={e => updEditArr('builds', i, 'emoji', e.target.value)} />
+                    <div className="flex gap-1 flex-wrap">
+                      {['\uD83D\uDCE1','\uD83D\uDCC8','\uD83D\uDDA5\uFE0F','\uD83E\uDD16','\uD83E\uDDE0','\uD83C\uDFA8','\uD83D\uDD2C','\uD83C\uDFAE','\uD83D\uDCF1','\uD83C\uDF10','\u26A1','\uD83D\uDD27','\uD83D\uDCA1','\uD83D\uDE80'].map(e => (
+                        <button type="button" key={e} onClick={() => updEditArr('builds', i, 'emoji', e)} className="p-0.5 rounded text-sm" style={{ background: b.emoji === e ? 'rgba(118,185,0,0.15)' : 'none', border: b.emoji === e ? '1px solid rgba(118,185,0,0.3)' : '1px solid transparent' }}>{e}</button>
+                      ))}
+                    </div>
                     <input className={inp + ' !py-1.5 !text-xs'} placeholder="Project name" value={b.name} onChange={e => updEditArr('builds', i, 'name', e.target.value)} />
-                    <button onClick={() => updEdit('builds', data.builds.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm shrink-0">{"\u00D7"}</button>
+                    <button type="button" onClick={() => updEdit('builds', data.builds.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm shrink-0">{"\u00D7"}</button>
                   </div>
                   <input className={inp + ' !py-1.5 !text-xs'} placeholder="Description" value={b.desc} onChange={e => updEditArr('builds', i, 'desc', e.target.value)} />
                   <div className="grid grid-cols-2 gap-2">
@@ -258,7 +267,7 @@ export default function EditPage({ params }: { params: { slug: string } }) {
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 space-y-3">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold text-[#f0f4f8]">AI Stack</h3>
-                <button onClick={() => updEdit('ai_stack', [...(data.ai_stack || []), { name: '', note: '' }])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
+                <button type="button" onClick={() => updEdit('ai_stack', [...(data.ai_stack || []), { name: '', note: '' }])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
               </div>
               {(data.ai_stack || []).map((t: any, i: number) => (
                 <div key={i} className="grid grid-cols-[24px_1fr_2fr_30px] gap-2 items-center">
@@ -268,7 +277,34 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                   </div>
                   <input className={inp + ' !py-1.5 !text-xs'} placeholder="Tool" value={t.name} onChange={e => updEditArr('ai_stack', i, 'name', e.target.value)} />
                   <input className={inp + ' !py-1.5 !text-xs'} placeholder="Why you use it" value={t.note} onChange={e => updEditArr('ai_stack', i, 'note', e.target.value)} />
-                  <button onClick={() => updEdit('ai_stack', data.ai_stack.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm">{"\u00D7"}</button>
+                  <button type="button" onClick={() => updEdit('ai_stack', data.ai_stack.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm">{"\u00D7"}</button>
+                </div>
+              ))}
+            </div>
+
+            {/* Looking For */}
+            <div className="bg-white/[0.02] border border-[#ff4757]/[0.15] rounded-xl p-5 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-[#ff4757]">{"\uD83C\uDFAF"} Looking For</h3>
+                <button type="button" onClick={() => updEdit('looking_for', [...(data.looking_for || []), { title: '', desc: '', emoji: '\uD83C\uDFAF' }])} className="text-[10px] text-[#ff4757] font-semibold">+ Add</button>
+              </div>
+              <p className="text-[10px] text-[#556]">What are you looking for at this event? Helps people know if there{"'"}s a match.</p>
+              {(data.looking_for || []).map((item: any, i: number) => (
+                <div key={i} className="space-y-2 p-3 bg-[#ff4757]/[0.03] border border-[#ff4757]/[0.08] rounded-lg">
+                  <div className="flex gap-2 items-center">
+                    <div className="flex flex-col shrink-0">
+                      <button type="button" onClick={() => moveItem('looking_for', i, -1)} className="text-[10px] text-[#556] hover:text-[#aaa] leading-none" style={{ opacity: i === 0 ? 0.2 : 1 }}>{"\u25B2"}</button>
+                      <button type="button" onClick={() => moveItem('looking_for', i, 1)} className="text-[10px] text-[#556] hover:text-[#aaa] leading-none" style={{ opacity: i === (data.looking_for || []).length - 1 ? 0.2 : 1 }}>{"\u25BC"}</button>
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      {LOOKING_EMOJIS.map(e => (
+                        <button type="button" key={e} onClick={() => updEditArr('looking_for', i, 'emoji', e)} className="p-0.5 rounded text-sm" style={{ background: item.emoji === e ? 'rgba(255,71,87,0.15)' : 'none', border: item.emoji === e ? '1px solid rgba(255,71,87,0.3)' : '1px solid transparent' }}>{e}</button>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => updEdit('looking_for', (data.looking_for || []).filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm shrink-0 ml-auto">{"\u00D7"}</button>
+                  </div>
+                  <input className={inp + ' !py-1.5 !text-xs'} placeholder="What are you looking for?" value={item.title} onChange={e => updEditArr('looking_for', i, 'title', e.target.value)} />
+                  <input className={inp + ' !py-1.5 !text-xs'} placeholder="Brief description (optional)" value={item.desc} onChange={e => updEditArr('looking_for', i, 'desc', e.target.value)} />
                 </div>
               ))}
             </div>
@@ -277,7 +313,7 @@ export default function EditPage({ params }: { params: { slug: string } }) {
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 space-y-3">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold text-[#f0f4f8]">AI Philosophy</h3>
-                <button onClick={() => updEdit('philosophy', [...(data.philosophy || []), ''])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
+                <button type="button" onClick={() => updEdit('philosophy', [...(data.philosophy || []), ''])} className="text-[10px] text-[#76b900] font-semibold">+ Add</button>
               </div>
               {(data.philosophy || []).map((q: string, i: number) => (
                 <div key={i} className="grid grid-cols-[1fr_30px] gap-2 items-center">
@@ -286,11 +322,12 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                     next[i] = e.target.value;
                     updEdit('philosophy', next);
                   }} />
-                  <button onClick={() => updEdit('philosophy', data.philosophy.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm">{"\u00D7"}</button>
+                  <button type="button" onClick={() => updEdit('philosophy', data.philosophy.filter((_: any, j: number) => j !== i))} className="text-[#ff4757]/40 text-sm">{"\u00D7"}</button>
                 </div>
               ))}
             </div>
 
+            {/* Event Badge */}
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 space-y-3">
               <h3 className="text-sm font-bold text-[#f0f4f8]">Event Badge</h3>
               <div className="grid grid-cols-2 gap-2">
@@ -303,14 +340,14 @@ export default function EditPage({ params }: { params: { slug: string } }) {
           </div>
         )}
 
-        {/* Sticky save bar for edit tab */}
+        {/* Sticky save bar */}
         {tab === 'edit' && (
           <div className="fixed bottom-0 left-0 right-0 z-[100] bg-[#060b14]/95 backdrop-blur-lg border-t border-white/[0.06] px-6 py-3">
             <div className="max-w-2xl mx-auto flex items-center justify-between">
-              <a href={'/s/' + profile.slug} className="text-xs text-[#76b900] font-medium no-underline">{'\u2190 Back to card'}</a>
+              <a href={'/' + profile.slug} className="text-xs text-[#76b900] font-medium no-underline">{'\u2190 Back to card'}</a>
               <div className="flex items-center gap-3">
                 {saveMsg && <span className="text-xs font-semibold" style={{ color: saveMsg.startsWith('Error') ? '#ff4757' : '#76b900' }}>{saveMsg}</span>}
-                <button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg,#ff4757,#e8364a)', boxShadow: '0 4px 20px rgba(255,71,87,0.2)' }}>
+                <button type="button" onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg,#ff4757,#e8364a)', boxShadow: '0 4px 20px rgba(255,71,87,0.2)' }}>
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -318,11 +355,12 @@ export default function EditPage({ params }: { params: { slug: string } }) {
           </div>
         )}
 
+        {/* Contacts tab */}
         {tab === 'contacts' && (
           <div>
             <div className="flex justify-between items-center mb-4">
               <p className="text-sm text-[#8a9aaa]">{exchanges.length + ' contact' + (exchanges.length !== 1 ? 's' : '')}</p>
-              {exchanges.length > 0 && <button onClick={exportCSV} className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-[#8a9aaa]">Export CSV</button>}
+              {exchanges.length > 0 && <button type="button" onClick={exportCSV} className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-[#8a9aaa]">Export CSV</button>}
             </div>
             {exchanges.length === 0 ? (
               <div className="text-center py-16 bg-white/[0.02] border border-white/[0.06] rounded-xl">
@@ -347,6 +385,7 @@ export default function EditPage({ params }: { params: { slug: string } }) {
           </div>
         )}
 
+        {/* QR tab */}
         {tab === 'qr' && profile && (
           <div className="text-center">
             <div ref={qrRef} className="bg-[#0d1520] rounded-2xl p-6 inline-block border border-white/[0.06]">
@@ -370,7 +409,7 @@ export default function EditPage({ params }: { params: { slug: string } }) {
               <p className="text-[10px] text-[#556] mt-1">Scan to exchange contacts</p>
             </div>
             <div className="flex gap-2 justify-center mt-4">
-              <button onClick={async () => {
+              <button type="button" onClick={async () => {
                 if (!profile) return;
                 setSavingQr(true);
                 try {
@@ -379,13 +418,11 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                   canvas.width = W; canvas.height = H;
                   const ctx = canvas.getContext('2d')!;
 
-                  // Background
                   ctx.fillStyle = '#0d1520';
                   ctx.beginPath();
                   ctx.roundRect(0, 0, W, H, 32);
                   ctx.fill();
 
-                  // Avatar
                   const color = profile.companies?.[0]?.color || '#ff4757';
                   let avatarDrawn = false;
                   if (profile.avatar_url) {
@@ -400,7 +437,6 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                       ctx.clip();
                       ctx.drawImage(img, W / 2 - 50, 50, 100, 100);
                       ctx.restore();
-                      // Border
                       ctx.beginPath();
                       ctx.arc(W / 2, 100, 51, 0, Math.PI * 2);
                       ctx.strokeStyle = 'rgba(255,255,255,0.1)';
@@ -420,20 +456,17 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                     ctx.fillText(profile.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2), W / 2, 112);
                   }
 
-                  // Name
                   ctx.fillStyle = '#f0f4f8';
                   ctx.font = 'bold 26px -apple-system, sans-serif';
                   ctx.textAlign = 'center';
                   ctx.fillText(profile.name, W / 2, 185);
 
-                  // Title
                   if (profile.title) {
                     ctx.fillStyle = '#8a9aaa';
                     ctx.font = '16px -apple-system, sans-serif';
                     ctx.fillText(profile.title, W / 2, 210);
                   }
 
-                  // Event badge
                   let badgeY = 240;
                   if (profile.event) {
                     const text = profile.event.name + ' \u00B7 ' + profile.event.date;
@@ -451,7 +484,6 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                     badgeY += 40;
                   }
 
-                  // QR code - render from SVG in page
                   const svgEl = qrRef.current?.querySelector('svg');
                   if (svgEl) {
                     const svgData = new XMLSerializer().serializeToString(svgEl);
@@ -460,7 +492,6 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                     const qrImg = new Image();
                     await new Promise<void>((res) => { qrImg.onload = () => res(); qrImg.src = svgUrl; });
 
-                    // White background for QR
                     const qrSize = 280;
                     const qrX = W / 2 - qrSize / 2 - 16;
                     const qrY = badgeY + 10;
@@ -471,13 +502,11 @@ export default function EditPage({ params }: { params: { slug: string } }) {
                     ctx.drawImage(qrImg, qrX + 16, qrY + 16, qrSize, qrSize);
                     URL.revokeObjectURL(svgUrl);
 
-                    // URL text
                     const urlY = qrY + qrSize + 60;
                     ctx.fillStyle = '#76b900';
                     ctx.font = 'bold 14px -apple-system, sans-serif';
                     ctx.fillText('cardos.ai/' + profile.slug, W / 2, urlY);
 
-                    // Subtitle
                     ctx.fillStyle = '#556';
                     ctx.font = '12px -apple-system, sans-serif';
                     ctx.fillText('Scan to exchange contacts', W / 2, urlY + 20);
@@ -489,8 +518,8 @@ export default function EditPage({ params }: { params: { slug: string } }) {
               }} className="px-5 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg,#ff4757,#e8364a)', boxShadow: '0 4px 20px rgba(255,71,87,0.2)' }}>
                 {savingQr ? 'Generating...' : '\uD83D\uDCF7 Generate Image'}
               </button>
-              <button onClick={() => navigator.clipboard.writeText('https://cardos.ai/' + profile.slug)} className="px-4 py-2.5 rounded-xl border border-white/10 text-xs text-[#889]">Copy link</button>
-              <button onClick={() => { if (navigator.share) navigator.share({ title: profile.name, url: 'https://cardos.ai/' + profile.slug }); }} className="px-4 py-2.5 rounded-xl bg-[#76b900]/10 border border-[#76b900]/20 text-xs text-[#76b900] font-semibold">Share</button>
+              <button type="button" onClick={() => navigator.clipboard.writeText('https://cardos.ai/' + profile.slug)} className="px-4 py-2.5 rounded-xl border border-white/10 text-xs text-[#889]">Copy link</button>
+              <button type="button" onClick={() => { if (navigator.share) navigator.share({ title: profile.name, url: 'https://cardos.ai/' + profile.slug }); }} className="px-4 py-2.5 rounded-xl bg-[#76b900]/10 border border-[#76b900]/20 text-xs text-[#76b900] font-semibold">Share</button>
             </div>
             {qrImage && (
               <div className="mt-5 bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4">
